@@ -1,3 +1,24 @@
+# This is a fork
+
+of <https://github.com/zkiiito/A9> great work. I only added audio support and a few of minor changes.
+It was only tested in my environment:
+
+- Linux Lubuntu 22.04.4 LTS
+- Python 3.10.12
+- Chromium 147.0.7750.0
+- Firefox 135.0
+- vlc 3.0.16
+- mpv 0.34.1
+- camera INO-A10N-V2.3 Ca13
+
+
+av and numpy python modules are the dependancies, In my case i installed them with `python3 -m pip install --only-binary=:all: "av==14.2.0"` and `python3 -m pip install numpy`.
+You may have different python versions and may try different module versions.
+There are also different A9 cameras that may work with this.
+Let me know of any other working rig.
+
+Special infinite thanks to **Zoltan Feher aka zkiiito** who did the hard work.
+
 # A9 local camera client
 
 A standalone, local client for the cheap XCThings / Linklemo "A9" WiFi camera
@@ -53,7 +74,7 @@ python3 a9_discover.py --save-config          # writes a9_camera.json (chmod 600
 python3 a9_live_snapshot.py -o snapshot.jpg   # reads a9_camera.json if present
 ```
 
-### Live feed (browser / Home Assistant)
+### Live feed (browser / Home Assistant / multimedia players)
 
 ```bash
 python3 a9_mjpeg_server.py                     # then open http://127.0.0.1:8080/
@@ -66,6 +87,8 @@ It holds one session to the camera and serves `/stream.mjpg` (MJPEG, ~10 fps),
 a stall watchdog reconnects only if the network actually drops.
 `/status` returns JSON (battery, firmware/model, connected/streaming) decoded from the
 camera's `2780` status pushes, handy for a Home Assistant REST sensor.
+
+In this fork I added those endpoins: `/stream` a brovser stream with audio and `/live.ts` stream with audio for vlc, mpv and possibly other players.
 
 For Home Assistant, point an **MJPEG IP Camera** at `.../stream.mjpg`, or a **Generic
 Camera** still-image URL at `.../snapshot.jpg`. The feed is unauthenticated, so it
@@ -125,7 +148,8 @@ settings in the app do not change the live stream.
   [`Yeti47/cheap-shot`](https://github.com/Yeti47/cheap-shot) (Go PPRPC implementation)
 - Vendor: XC Things; app `Linklemo` / `com.xcthings.fchan`
 - Hardware: PCB `INO-IPC-A9` (also sold as "Pinmei A9"), Beken BK7252N
-
+- <https://www.elektroda.com/rtvforum/topic4118499-120.html>
+- 
 ## Scope and legal
 
 For local interoperability and security research on hardware you own. Do not use it
