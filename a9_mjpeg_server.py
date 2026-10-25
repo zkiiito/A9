@@ -65,7 +65,6 @@ def decode_alaw(data):
         else:
             sample = -sample
 
-        sample = max(-32768, min(32767, sample * 2))
         pcm.extend(struct.pack("<h", sample))
 
     return bytes(pcm)
@@ -538,10 +537,12 @@ VIEWER = b"""<!doctype html>
 <style>
 html,body { margin:0; width:100%; height:100%; background:#000; overflow:hidden; }
 canvas { display:block; width:100%; height:100%; object-fit:contain; }
+#enable-audio { position:fixed; top:1rem; right:1rem; padding:0.6rem 1rem; }
 </style>
 </head>
 <body>
 <canvas id="video"></canvas>
+<button id="enable-audio" type="button">Enable sound</button>
 <script>
 (async () => {
   const canvas = document.getElementById("video");
@@ -550,6 +551,24 @@ canvas { display:block; width:100%; height:100%; object-fit:contain; }
   let pending = new Uint8Array(0);
   let audio = null;
   let nextAudioTime = 0;
+  const audioButton = document.getElementById("enable-audio");
+
+  audioButton.addEventListener("click", async () => {
+    try {
+      if (!audio) {
+        audio = new AudioContext({sampleRate:8000});
+        audio.addEventListener("statechange", () => {
+          audioButton.hidden = audio.state === "running";
+        });
+      }
+      await audio.resume();
+      nextAudioTime = 0;
+      audioButton.hidden = audio.state === "running";
+    } catch (err) {
+      audioButton.hidden = false;
+      console.error("A9 audio:", err);
+    }
+  });
 
   function findMagic(b) {
     for (let i = 0; i <= b.length - 4; i++) {
@@ -560,10 +579,8 @@ canvas { display:block; width:100%; height:100%; object-fit:contain; }
   }
 
   function playPCM(payload) {
-    if (!audio) {
-      audio = new AudioContext({sampleRate:8000});
-      audio.resume().catch(() => {});
-    }
+    // Discard muted audio so enabling sound starts with live samples.
+    if (!audio || audio.state !== "running") return;
 
     const count = Math.floor(payload.length / 2);
     if (!count) return;
@@ -667,16 +684,12 @@ def make_handler(state, first_timeout, max_age):
             pass
 
         def _wait_first(self):
-            end = time.time() + first_timeout
-
-            while (
-                self.jpeg0() is None
-                and time.time() < end
-                and not state.stop
-            ):
-                state.wait_newer(0, 0.5)
-
-            return self.jpeg0()
+            with state.cond:
+                state.cond.wait_for(
+                    lambda: state.jpeg is not None or state.stop,
+                    timeout=first_timeout,
+                )
+                return state.jpeg
 
         def jpeg0(self):
             with state.cond:
